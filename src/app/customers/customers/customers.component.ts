@@ -43,7 +43,14 @@ function emailMatcher(c: AbstractControl): { [key: string]: boolean } | null {
 export class CustomerComponent implements OnInit {
   customerForm!: FormGroup;
   customer = new Customer();
+  emailErrorMessage!: string;
+
   private formBuilder = inject(FormBuilder);
+
+  private validationMessages = {
+    required: 'Please enter your email address.',
+    email: 'Please enter a valid email address.',
+  };
 
   ngOnInit(): void {
     this.customerForm = this.formBuilder.group({
@@ -54,7 +61,7 @@ export class CustomerComponent implements OnInit {
           email: ['', [Validators.required, Validators.email]],
           confirmEmail: ['', Validators.required],
         },
-        // as AbstractControlOptions here is to solve deprecation error 
+        // as AbstractControlOptions here is to solve deprecation error
         { validator: emailMatcher as AbstractControlOptions }
       ),
       phone: '',
@@ -63,8 +70,13 @@ export class CustomerComponent implements OnInit {
       sendCatalog: true,
     });
 
-    this.customerForm.valueChanges.subscribe((value) =>
-      console.log('Form Errors: ', this.customerForm)
+    this.customerForm
+      .get('notification')
+      ?.valueChanges.subscribe((value) => this.setNotification(value));
+
+    const emailControl = this.customerForm.get('emailGroup.email');
+    emailControl?.valueChanges.subscribe((value) =>
+      this.setEmailErrorMessage(value)
     );
   }
 
@@ -84,6 +96,15 @@ export class CustomerComponent implements OnInit {
       phoneControl?.clearValidators();
     }
     phoneControl?.updateValueAndValidity();
+  }
+
+  setEmailErrorMessage(c: AbstractControl) {
+    this.emailErrorMessage = '';
+    if ((c.touched || c.dirty) && c.errors) {
+      this.emailErrorMessage = Object.keys(c.errors)
+        .map((key) => (this.validationMessages as any)[key])
+        .join(' ');
+    }
   }
 
   save(): void {
